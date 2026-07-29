@@ -152,8 +152,7 @@ export default function App() {
 
       <footer className="footer">
         <p>
-          MIT — skills by <a href="https://github.com/mattpocock/skills">Matt Pocock</a> and{' '}
-          <a href="https://github.com/pinkforest/threejs-playground">pinkforest</a>, curated by{' '}
+          MIT — skills by <a href="https://github.com/mattpocock/skills">Matt Pocock</a>, curated by{' '}
           <a href="https://github.com/creativoma">Mariano Alvarez</a>
         </p>
       </footer>
