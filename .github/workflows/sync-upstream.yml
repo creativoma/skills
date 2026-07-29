@@ -1,0 +1,53 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # daily at 08:00 UTC
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/mattpocock/skills.git
+          git fetch upstream main
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          NEW_COMMITS=$(git rev-list --count origin/main..upstream/main)
+          echo "count=$NEW_COMMITS" >> "$GITHUB_OUTPUT"
+          echo "Upstream has $NEW_COMMITS new commit(s)"
+
+      - name: Push sync branch and open PR
+        if: steps.check.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Push upstream's main as-is to a branch in this fork. The PR diff
+          # (and any conflicts) are then handled by GitHub's UI - no merge
+          # attempted here, so this never fails on conflicts.
+          git push -f origin upstream/main:refs/heads/upstream-sync
+
+          # Open the PR only if one isn't already waiting for review.
+          EXISTING=$(gh pr list --base main --head upstream-sync --state open --json number --jq length)
+          if [ "$EXISTING" = "0" ]; then
+            gh pr create \
+              --base main \
+              --head upstream-sync \
+              --title "chore: sync with mattpocock/skills" \
+              --body "Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR."
+          else
+            echo "Sync PR already open - branch updated in place"
+          fi
