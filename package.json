@@ -10,7 +10,10 @@
   "license": "MIT",
   "scripts": {
     "changeset": "changeset",
-    "version": "changeset version"
+    "version": "changeset version",
+    "dev": "bun run --cwd web dev",
+    "build": "bun run --cwd web build",
+    "preview": "bun run --cwd web preview"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
