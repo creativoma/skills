@@ -33,7 +33,10 @@ jobs:
       - name: Push sync branch and open PR
         if: steps.check.outputs.count != '0'
         env:
-          GH_TOKEN: ${{ github.token }}
+          # GITHUB_TOKEN can never create pull requests in a forked
+          # repository, regardless of repo permission settings - use a PAT
+          # (repo's SYNC_PR_TOKEN secret) for the `gh pr` calls instead.
+          GH_TOKEN: ${{ secrets.SYNC_PR_TOKEN }}
         run: |
           git checkout -B upstream-sync upstream/main
 
