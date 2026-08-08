@@ -35,10 +35,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Push upstream's main as-is to a branch in this fork. The PR diff
+          git checkout -B upstream-sync upstream/main
+
+          # The default GITHUB_TOKEN can never create or update files under
+          # .github/workflows/ (GitHub rejects the push without a PAT that
+          # has the `workflow` scope), so keep this fork's workflow files
+          # as they are. Sync any upstream workflow changes by hand.
+          rm -rf .github/workflows
+          git checkout origin/main -- .github/workflows
+          if ! git diff --cached --quiet -- .github/workflows; then
+            git -c user.name="github-actions[bot]" \
+              -c user.email="github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore: keep existing workflow files (see sync-upstream.yml)"
+          fi
+
+          # Push the (possibly amended) branch to this fork. The PR diff
           # (and any conflicts) are then handled by GitHub's UI - no merge
           # attempted here, so this never fails on conflicts.
-          git push -f origin upstream/main:refs/heads/upstream-sync
+          git push -f origin upstream-sync:refs/heads/upstream-sync
 
           # Open the PR only if one isn't already waiting for review.
           EXISTING=$(gh pr list --base main --head upstream-sync --state open --json number --jq length)
@@ -47,7 +61,7 @@ jobs:
               --base main \
               --head upstream-sync \
               --title "chore: sync with mattpocock/skills" \
-              --body "Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR."
+              --body "Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR. Note: changes under .github/workflows/ are excluded from this sync (GITHUB_TOKEN can't push them) - check upstream's workflows manually if needed."
           else
             echo "Sync PR already open - branch updated in place"
           fi
