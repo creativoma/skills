@@ -58,13 +58,17 @@ jobs:
           git push -f origin upstream-sync:refs/heads/upstream-sync
 
           # Open the PR only if one isn't already waiting for review.
+          # Uses the REST API directly rather than `gh pr create` - the
+          # createPullRequest GraphQL mutation intermittently rejects PATs
+          # with a bogus permissions error even when the token is correctly
+          # scoped (see https://github.com/cli/cli/discussions/9732).
           EXISTING=$(gh pr list --base main --head upstream-sync --state open --json number --jq length)
           if [ "$EXISTING" = "0" ]; then
-            gh pr create \
-              --base main \
-              --head upstream-sync \
-              --title "chore: sync with mattpocock/skills" \
-              --body "Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR. Note: changes under .github/workflows/ are excluded from this sync (GITHUB_TOKEN can't push them) - check upstream's workflows manually if needed."
+            gh api repos/creativoma/skills/pulls \
+              -f title="chore: sync with mattpocock/skills" \
+              -f head="upstream-sync" \
+              -f base="main" \
+              -f body="Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR. Note: changes under .github/workflows/ are excluded from this sync (GITHUB_TOKEN can't push them) - check upstream's workflows manually if needed."
           else
             echo "Sync PR already open - branch updated in place"
           fi
