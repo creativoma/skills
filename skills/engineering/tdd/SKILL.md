@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests. Also covers AI-assisted test generation and mutation testing mindset.
 ---
 
 # Test-Driven Development
@@ -14,6 +14,69 @@ When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and 
 Tests verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't. A good test reads like a specification: "user can checkout with valid cart" tells you exactly what capability exists, and it survives refactors because it doesn't care about internal structure.
 
 See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+
+## AI + Tests: The Trap
+
+When you ask AI to generate tests for existing code, it reads the implementation and validates its behavior. It does not question it. It cannot.
+
+This produces tests that are green by construction. 100% coverage. Zero confidence.
+
+**The trap**: AI writes tests after the fact → tests confirm what the code does → no test ever catches the bug the code already has.
+
+**The fix: intention-first generation**:
+
+1. Write what the function *should* do in plain language (the spec)
+2. Ask AI to generate tests from the spec, not from the code
+3. Write or adjust the implementation to pass those tests
+4. Verify the tests can actually fail (see [mutation.md](mutation.md))
+
+When prompting AI for tests, give it the intent:
+
+```
+❌  "Generate tests for this function: [paste code]"
+
+✅  "Generate tests for a function that:
+     - formats a price with currency symbol
+     - always shows exactly two decimal places
+     - throws on negative amounts
+     - supports EUR and USD"
+```
+
+The second prompt cannot be answered by reading the code. It forces the AI to reason from requirements. Those tests will catch things the implementation got wrong.
+
+After AI generates tests, always ask: **"What would I need to change in the implementation to make each of these tests fail?"** If the answer is "nothing obvious", the test is too weak.
+
+## Test Quality Gate: Can This Test Fail?
+
+Before accepting any test (AI-generated or hand-written), verify it can actually detect a broken implementation.
+
+**Manual mutation check**: make each of these changes to the implementation, one at a time, and confirm the test fails:
+
+- Change `===` to `!==` (or flip any condition)
+- Remove a boundary check (`<=` → `<`, `>` → `>=`)
+- Delete a line of logic entirely
+- Replace a constant with a wrong value
+- Swap two branches of an if/else
+
+If the test still passes after any of these changes, it is not protecting you.
+
+```typescript
+// Original
+function formatPrice(amount: number, currency: 'EUR' | 'USD'): string {
+  const symbols = { EUR: '€', USD: '$' }
+  return `${symbols[currency]}${amount.toFixed(2)}`
+}
+
+// Mutation: remove toFixed
+return `${symbols[currency]}${amount}` // ← test must catch this
+
+// Mutation: wrong symbol
+const symbols = { EUR: '$', USD: '€' } // ← test must catch this
+```
+
+A test suite that survives these mutations is not a test suite. Improve the tests before moving on.
+
+For systematic mutation testing at scale, see [mutation.md](mutation.md).
 
 ## Seams: where tests go
 
@@ -35,4 +98,5 @@ When the shape of that interface is itself in question (how deep the module is, 
 
 - **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
+- **Verify the test can fail.** After each green cycle, apply one mutation (flip a condition, delete a line, change a value) and confirm the test turns red before reverting it. If no mutation breaks the test, the test is incomplete, see [mutation.md](mutation.md).
 - **Refactoring is not part of the loop.** It belongs to the review stage (see the `code-review` skill), not the red → green implementation cycle.
