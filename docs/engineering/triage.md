@@ -64,7 +64,7 @@ All of this work makes one artifact good: the **agent brief**. This is the struc
 
 If the tracker treats external pull requests as a request surface, they go through the same machine, with the same categories, states and transitions. The states apply to the diff. `ready-for-agent` means a brief is attached and an agent should take the next step on the code. `ready-for-human` means a person can merge it. A brief on a PR describes what is left to do to the existing diff, not how to build the thing from nothing.
 
-Discovery shows only *external* PRs, because a collaborator's in-progress branch is not triage work. That filter applies only to discovery. If you name a PR explicitly, `triage` handles it, whoever wrote it. One known problem: the GitHub template's command to list external PRs asks `gh pr list` for an `authorAssociation` field that `gh` does not expose, so the command fails ([#468](https://github.com/mattpocock/skills/issues/468)).
+Discovery shows only *external* PRs, because a collaborator's in-progress branch is not triage work. That filter applies only to discovery. If you name a PR explicitly, `triage` handles it, whoever wrote it.
 
 ## Common questions
 
