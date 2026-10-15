@@ -72,7 +72,7 @@ Probably not. The ticket is more likely too big. A run does codebase exploration
 
 **`/implement #2` in a fresh session worked on something completely unrelated.**
 
-The agent resolves `#2` against whatever numbered list it can see. In a fresh session that may be a todo file, a checklist, or another work list rather than the configured tracker. The agent does not stop when the match is uncertain, so the mistake is not obvious until the work has started. Pass the full reference, the issue URL or `owner/repo#2`, and ask it to confirm the title back before it begins.
+The agent resolved `#2` against another numbered list in context, such as a todo file or checklist, rather than the configured tracker. `implement` now fetches a passed reference from the issue tracker and states its title before starting, and asks when the reference is ambiguous. Check that title matches the ticket you meant; passing the issue URL or `owner/repo#2` removes the ambiguity entirely.
 
 ## It's working if
 
