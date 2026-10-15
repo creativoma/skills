@@ -55,8 +55,7 @@ Updates itself at startup.
 <summary><strong>GitHub Copilot</strong> (CLI and VS Code)</summary>
 
 ```bash
-copilot plugin marketplace add mattpocock/skills
-copilot plugin install mattpocock-skills@mattpocock
+npx skills@latest add creativoma/skills
 ```
 
 Then, once, add to `~/.copilot/settings.json`:
@@ -89,7 +88,7 @@ Re-run both commands to update.
 <summary><strong>Any other agent, or editable files</strong> (manual updates)</summary>
 
 ```bash
-npx skills@latest add mattpocock/skills -a <agent>  # cursor, opencode, devin, windsurf, amp, pi; omit -a to choose
+npx skills@latest add creativoma/skills
 ```
 
 When the installer asks which skills to take, include `setup-matt-pocock-skills`. To update, run `npx skills@latest update`, and re-run `add` to pick up new skills.

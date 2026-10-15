@@ -1,0 +1,22 @@
+{
+  "name": "skills-search",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate-skills.mjs",
+    "predev": "npm run generate",
+    "dev": "vite",
+    "prebuild": "npm run generate",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.0",
+    "vite": "^7.0.0"
+  }
+}
