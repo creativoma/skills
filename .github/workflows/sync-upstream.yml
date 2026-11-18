@@ -1,0 +1,74 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # daily at 08:00 UTC
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/mattpocock/skills.git
+          git fetch upstream main
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          NEW_COMMITS=$(git rev-list --count origin/main..upstream/main)
+          echo "count=$NEW_COMMITS" >> "$GITHUB_OUTPUT"
+          echo "Upstream has $NEW_COMMITS new commit(s)"
+
+      - name: Push sync branch and open PR
+        if: steps.check.outputs.count != '0'
+        env:
+          # GITHUB_TOKEN can never create pull requests in a forked
+          # repository, regardless of repo permission settings - use a PAT
+          # (repo's SYNC_PR_TOKEN secret) for the `gh pr` calls instead.
+          GH_TOKEN: ${{ secrets.SYNC_PR_TOKEN }}
+        run: |
+          git checkout -B upstream-sync upstream/main
+
+          # The default GITHUB_TOKEN can never create or update files under
+          # .github/workflows/ (GitHub rejects the push without a PAT that
+          # has the `workflow` scope), so keep this fork's workflow files
+          # as they are. Sync any upstream workflow changes by hand.
+          git rm -r --ignore-unmatch --quiet .github/workflows
+          git checkout origin/main -- .github/workflows
+          if ! git diff --cached --quiet -- .github/workflows; then
+            git -c user.name="github-actions[bot]" \
+              -c user.email="github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore: keep existing workflow files (see sync-upstream.yml)"
+          fi
+
+          # Push the (possibly amended) branch to this fork. The PR diff
+          # (and any conflicts) are then handled by GitHub's UI - no merge
+          # attempted here, so this never fails on conflicts.
+          git push -f origin upstream-sync:refs/heads/upstream-sync
+
+          # Open the PR only if one isn't already waiting for review.
+          # Uses the REST API directly rather than `gh pr create` - the
+          # createPullRequest GraphQL mutation intermittently rejects PATs
+          # with a bogus permissions error even when the token is correctly
+          # scoped (see https://github.com/cli/cli/discussions/9732).
+          EXISTING=$(gh pr list --base main --head upstream-sync --state open --json number --jq length)
+          if [ "$EXISTING" = "0" ]; then
+            gh api repos/creativoma/skills/pulls \
+              -f title="chore: sync with mattpocock/skills" \
+              -f head="upstream-sync" \
+              -f base="main" \
+              -f body="Automated sync: ${{ steps.check.outputs.count }} new commit(s) from [mattpocock/skills](https://github.com/mattpocock/skills). Review and merge to update the fork. If there are conflicts, resolve them in this PR. Note: changes under .github/workflows/ are excluded from this sync (GITHUB_TOKEN can't push them) - check upstream's workflows manually if needed."
+          else
+            echo "Sync PR already open - branch updated in place"
+          fi
